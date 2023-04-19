@@ -8,13 +8,16 @@ import canvasapi
 import json
 import os
 
-BASE_URL  = "https://uit.instructure.com/"   # Canvas for uit.no
+BASE_URL = "https://uit.instructure.com/"   # Canvas for uit.no
 
-COURSE_ID = 4525                             # inf-1400 2018
-COURSE_ID = 11589                            # inf-1400 2019
-COURSE_ID = 16497                            # inf-1400 2020
-COURSE_ID = 21176                            # inf-1400 2021
-COURSE_ID = 24906                            # inf-1400 2022
+# COURSE_ID = 4525                            # inf-1400 2018
+# COURSE_ID = 11589                           # inf-1400 2019
+# COURSE_ID = 16497                           # inf-1400 2020
+# COURSE_ID = 21176                           # inf-1400 2021
+# COURSE_ID = 24906                           # inf-1400 2022
+
+COURSE_ID = 26473                           # inf-1049 2022
+# COURSE_ID = 18524                           # INF-1100 2020
 
 # To view submissions after a course is closed, or to view students that have withdrawn from the course.
 INCLUDE_COMPLETED = True
@@ -32,22 +35,22 @@ def stud_to_dict(stud):
         name = stud.short_name
 
     return {
-        'id' : stud.id,
-        'display_name' : name,
-        'is_completed' : stud.id in students_compl,
+        'id': stud.id,
+        'display_name': name,
+        'is_completed': stud.id in students_compl,
     }
 
 
 def subm_to_dict(subm, studs):
     return {
-        'submitted_at' : subm.submitted_at,
-        'excused' : subm.excused,
-        'attempt' : subm.attempt,
-        'workflow_state' : subm.workflow_state,
-        'grade' : subm.grade,
-        'entered_grade' : subm.entered_grade,
-        'submission_history' : subm.submission_history,
-        'student_name' : studs[subm.user_id]['display_name']
+        'submitted_at': subm.submitted_at,
+        'excused': subm.excused,
+        'attempt': subm.attempt,
+        'workflow_state': subm.workflow_state,
+        'grade': subm.grade,
+        'entered_grade': subm.entered_grade,
+        'submission_history': subm.submission_history,
+        'student_name': studs[subm.user_id]['display_name']
     }
 
 
@@ -76,18 +79,20 @@ print("Fetching assignments and students")
 assignments = list(course.get_assignments())
 assignments.sort(key=lambda x: x.name)
 # Active students
-students = {s.id : s for s in course.get_users(include=['enrollments']) if has_user_enrollment(s.enrollments)}
+students = {s.id: s for s in course.get_users(
+    include=['enrollments']) if has_user_enrollment(s.enrollments)}
 print(f"  - {len(students)} active students")
 # Students that have withddrawn or are marked as concluded/completed/prior, which happens
 # to almost all students when the semester is over.
-students_compl = {s.id : s for s in course.get_users(enrollment_state=['completed'], include=['enrollments'])
+students_compl = {s.id: s for s in course.get_users(enrollment_state=['completed'], include=['enrollments'])
                   if is_completed_student(s)}
 print(f"  - {len(students_compl)} completed students")
 
 alist = []
 for a in assignments:
     print('Fetching info for', a.name)
-    subs = list(a.get_submissions(include=['submission_history', 'submission_comments']))
+    subs = list(a.get_submissions(
+        include=['submission_history', 'submission_comments']))
     print(' -- got submissions')
     studs = list(a.get_gradeable_students())
     print(' -- got students')
@@ -97,13 +102,13 @@ for a in assignments:
         print(" -- adding submissions from completed students")
         subs += get_compl_submissions(a)
 
-    f_studs = {int(s.id) : stud_to_dict(s) for s in studs}
+    f_studs = {int(s.id): stud_to_dict(s) for s in studs}
     ad = {
-        'created_at' : a.created_at,
-        'updated_at' : a.updated_at,
-        'name'  : a.name,
-        'f_studs' : f_studs,
-        'f_submissions' : [subm_to_dict(s, f_studs) for s in subs],
+        'created_at': a.created_at,
+        'updated_at': a.updated_at,
+        'name': a.name,
+        'f_studs': f_studs,
+        'f_submissions': [subm_to_dict(s, f_studs) for s in subs],
     }
     alist.append(ad)
 
